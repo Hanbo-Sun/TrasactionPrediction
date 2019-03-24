@@ -39,3 +39,4 @@ rsconnect/
 test.csv
 train.csv
 .DS_Store
+*.7z
