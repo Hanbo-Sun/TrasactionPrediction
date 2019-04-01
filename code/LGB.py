@@ -7,157 +7,36 @@
 # KFold: Provides train/test indices to split data in train/test sets. Split dataset into k consecutive folds (without shuffling by default).
 
 # %%
+import warnings
+warnings.filterwarnings("ignore")
 import numpy as np 
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import KFold, StratifiedKFold
-from sklearn.metrics import roc_auc_score
-
-# %%
-
-
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.filterwarnings('ignore')
-plt.style.use('seaborn')
-sns.set(font_scale=1)
-
-
-
-# %%
-import numpy as np 
-import pandas as pd
-import os
 import lightgbm as lgb
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.filterwarnings('ignore')
 plt.style.use('seaborn')
 sns.set(font_scale=1)
 
-# %%
+#user defined
+import augment as ag
 os.chdir('/Users/hanbosun/Documents/GitHub/TrasactionPrediction/')
+random_state = 42
 
 
 # %%
-random_state = 42
-np.random.seed(random_state)
 df_train = pd.read_csv('input/train.csv')
 df_test = pd.read_csv('input/test.csv')
 ids = np.arange(df_train.shape[0])
-
+np.random.seed(random_state)
 np.random.shuffle(ids)
-
 df_train = df_train.iloc[ids,:]
 df_train_all = df_train
 
-
 # %%
-df_train = df_train.iloc[:2000,:]
-
-# %%
-def augment(x,y,t=2):
-    xs,xn = [],[]
-    for i in range(t):
-        mask = y>0
-        x1 = x[mask].copy()
-        ids = np.arange(x1.shape[0])
-        for c in range(x1.shape[1]):
-            np.random.shuffle(ids)
-            x1[:,c] = x1[ids][:,c]
-        xs.append(x1)
-
-    for i in range(t//2):
-        mask = y==0
-        x1 = x[mask].copy()
-        ids = np.arange(x1.shape[0])
-        for c in range(x1.shape[1]):
-            np.random.shuffle(ids)
-            x1[:,c] = x1[ids][:,c]
-        xn.append(x1)
-
-    xs = np.vstack(xs)
-    xn = np.vstack(xn)
-    ys = np.ones(xs.shape[0])
-    yn = np.zeros(xn.shape[0])
-    x = np.vstack([x,xs,xn])
-    y = np.concatenate([y,ys,yn])
-    return x,y
-
-
-# %%
-# https://www.kaggle.com/jiweiliu/lgb-2-leaves-augment#500381
-# thanks to @vishalsrinirao
-def shuffle_col_vals(x1):
-    rand_x = np.array([np.random.choice(x1.shape[0], size=x1.shape[0], replace=False) for i in range(x1.shape[1])]).T
-    grid = np.indices(x1.shape)
-    rand_y = grid[1]
-    return x1[(rand_x, rand_y)]
-
-def augment_fast1(x,y,t=2):
-    xs,xn = [],[]
-    for i in range(t):
-        mask = y>0
-        x1 = x[mask].copy()
-        x1 = shuffle_col_vals(x1)
-        xs.append(x1)
-
-    for i in range(t//2):
-        mask = y==0
-        x1 = x[mask].copy()
-        x1 = shuffle_col_vals(x1)
-        xn.append(x1)
-
-    xs = np.vstack(xs); xn = np.vstack(xn)
-    ys = np.ones(xs.shape[0]);yn = np.zeros(xn.shape[0])
-    x = np.vstack([x,xs,xn]); y = np.concatenate([y,ys,yn])
-    return x,y
-
-# %%
-    
-# https://stackoverflow.com/questions/50554272/randomly-shuffle-items-in-each-row-of-numpy-array
-def disarrange(a, axis=-1):
-    """
-    Shuffle `a` in-place along the given axis.
-
-    Apply numpy.random.shuffle to the given axis of `a`.
-    Each one-dimensional slice is shuffled independently.
-    """
-    b = a.swapaxes(axis, -1)
-    # Shuffle `b` in-place along the last axis.  `b` is a view of `a`,
-    # so `a` is shuffled in place, too.
-    shp = b.shape[:-1]
-    for ndx in np.ndindex(shp):
-        np.random.shuffle(b[ndx])
-    return
-
-def augment_fast2(x,y,t=2):
-    xs,xn = [],[]
-    for i in range(t):
-        mask = y>0
-        x1 = x[mask].copy()
-        disarrange(x1,axis=0)
-        xs.append(x1)
-
-    for i in range(t//2):
-        mask = y==0
-        x1 = x[mask].copy()
-        disarrange(x1,axis=0)
-        xn.append(x1)
-
-    xs = np.vstack(xs)
-    xn = np.vstack(xn)
-    ys = np.ones(xs.shape[0])
-    yn = np.zeros(xn.shape[0])
-    x = np.vstack([x,xs,xn])
-    y = np.concatenate([y,ys,yn])
-    return x,y
+df_train = df_train_all.iloc[:2000,:]
 
 # %%
 lgb_params = {
@@ -171,14 +50,14 @@ lgb_params = {
     "bagging_fraction" : 0.4,
     "feature_fraction" : 0.05,
     "min_data_in_leaf": 80,
-    "min_sum_heassian_in_leaf": 10,
+    "min_sum_hessian_in_leaf": 10,
     "tree_learner": "serial",
     "boost_from_average": "false",
     #"lambda_l1" : 5,
     #"lambda_l2" : 5,
     "bagging_seed" : random_state,
-    "verbosity" : 1,
-    "seed": random_state
+    "seed": random_state,
+    "verbosity": -1
 }
    
 
@@ -201,9 +80,9 @@ for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target']
     N = 5
     p_valid,yp = 0,0
     for i in range(N):
-        X_t, y_t = augment(X_train.values, y_train.values)
-#        X_t, y_t = augment_fast1(X_train.values, y_train.values)
-        X_t, y_t = augment_fast2(X_train.values, y_train.values)
+#        X_t, y_t = ag.augment(X_train.values, y_train.values)
+#        X_t, y_t = ag.augment_fast1(X_train.values, y_train.values)
+        X_t, y_t = ag.augment_fast2(X_train.values, y_train.values)
     
         X_t = pd.DataFrame(X_t)
         X_t = X_t.add_prefix('var_')
@@ -250,7 +129,7 @@ plt.title('LightGBM Features (averaged over folds)')
 plt.tight_layout()
 plt.savefig('lgbm_importances.png')
 
-# submission
+# %% submission
 predictions['target'] = np.mean(predictions[[col for col in predictions.columns if col not in ['ID_code', 'target']]].values, axis=1)
 predictions.to_csv('lgb_all_predictions.csv', index=None)
 sub_df = pd.DataFrame({"ID_code":df_test["ID_code"].values})
@@ -259,3 +138,5 @@ sub_df.to_csv("lgb_submission.csv", index=False)
 oof.to_csv('lgb_oof.csv', index=False)
 
     
+
+#%%
