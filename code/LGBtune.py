@@ -52,8 +52,8 @@ lgb_params = {
     "num_leaves" : 16, # 13
     "learning_rate" : 0.005, # 0.01 0.002
     "bagging_freq": 5,
-    "bagging_fraction" : 0.2, #0.4
-    "feature_fraction" : 0.07, #0.05 0.5 0.1 (~sqrt p)
+    "bagging_fraction" : 0.2, #0.4 0.335
+    "feature_fraction" : 0.07, #0.05 0.5 0.1 (~sqrt p) 0.041
     "min_data_in_leaf": 80, #80 120
     "min_sum_hessian_in_leaf": 10, #10 100 1
     "tree_learner": "serial",
@@ -62,7 +62,8 @@ lgb_params = {
     #"lambda_l2" : 5,
     "bagging_seed" : random_state,
     "seed": random_state,
-    "verbosity": -1
+    "verbosity": -1,
+    "num_threads":8
 }
    
 
@@ -100,7 +101,7 @@ for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target']
                         trn_data,
                         100000, 
                         valid_sets = [trn_data, val_data],
-                        early_stopping_rounds=5000,
+                        early_stopping_rounds=5000, #3000
                         verbose_eval = 1000,
                         evals_result=evals_result
                        )
