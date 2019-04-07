@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from sklearn.base import TransformerMixin
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
