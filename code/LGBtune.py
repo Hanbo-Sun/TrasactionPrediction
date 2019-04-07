@@ -50,7 +50,7 @@ lgb_params = {
     "boosting": 'gbdt',
     "max_depth" : -1,
     "num_leaves" : 16, # 13
-    "learning_rate" : 0.002, # 0.01
+    "learning_rate" : 0.005, # 0.01 0.002
     "bagging_freq": 5,
     "bagging_fraction" : 0.2, #0.4
     "feature_fraction" : 0.07, #0.05 0.5 0.1 (~sqrt p)
