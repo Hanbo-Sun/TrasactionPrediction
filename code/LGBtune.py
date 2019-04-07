@@ -62,8 +62,7 @@ lgb_params = {
     #"lambda_l2" : 5,
     "bagging_seed" : random_state,
     "seed": random_state,
-    "verbosity": -1,
-    "num_threads":8
+    "verbosity": -1 # "num_threads":8 (default all)
 }
    
 
