@@ -68,13 +68,14 @@ def augment_fast1(x,y,t=2):
 # %%
     
 # https://stackoverflow.com/questions/50554272/randomly-shuffle-items-in-each-row-of-numpy-array
-def disarrange(a, axis=-1):
+def disarrange(a, axis=-1, seed=0):
     """
     Shuffle `a` in-place along the given axis.
 
     Apply numpy.random.shuffle to the given axis of `a`.
     Each one-dimensional slice is shuffled independently.
     """
+    np.random.seed(seed)
     b = a.swapaxes(axis, -1)
     # Shuffle `b` in-place along the last axis.  `b` is a view of `a`,
     # so `a` is shuffled in place, too.
@@ -83,18 +84,19 @@ def disarrange(a, axis=-1):
         np.random.shuffle(b[ndx])
     return
 
-def augment_fast2(x,y,t=2):
+def augment_fast2(x,y,t=5, seed = 0):
     xs,xn = [],[]
+    print(t)
     for i in range(t):
         mask = y>0
         x1 = x[mask].copy()
-        disarrange(x1,axis=0)
+        disarrange(x1,axis=0,seed=seed)
         xs.append(x1)
 
     for i in range(t//2):
         mask = y==0
         x1 = x[mask].copy()
-        disarrange(x1,axis=0)
+        disarrange(x1,axis=0, seed=seed)
         xn.append(x1)
 
     xs = np.vstack(xs)
