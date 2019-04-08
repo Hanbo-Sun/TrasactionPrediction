@@ -108,8 +108,8 @@ ids = np.arange(df_train_all.shape[0])
 np.random.seed(random_state)
 
 np.random.shuffle(ids)
-df_train = df_train_all.iloc[ids[:10000],:]
-#train = train_all.iloc[ids,:]
+#df_train = df_train_all.iloc[ids[:10000],:]
+df_train = df_train_all.iloc[ids,:]
 
 
 #%%
@@ -198,7 +198,7 @@ sub_df = pd.DataFrame({"ID_code":df_test["ID_code"].values})
 sub_df["target"] = predictions['target']
 filename="xgb_submission_{:%Y-%m-%d_%H_%M}.csv".format(datetime.now())
 sub_df.to_csv(filename, index=False)
-oof.to_csv('lgb_oof.csv', index=False)
+oof.to_csv('xgb_oof.csv', index=False)
 
 
 
