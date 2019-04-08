@@ -41,8 +41,8 @@ ids = np.arange(df_train_all.shape[0])
 np.random.seed(random_state)
 
 np.random.shuffle(ids)
-#df_train = df_train_all.iloc[ids[:10000],:]
-df_train = df_train_all.iloc[ids,:]
+df_train = df_train_all.iloc[ids[:10000],:]
+#df_train = df_train_all.iloc[ids,:]
 # %%
 lgb_params = {
     "objective" : "binary",
@@ -85,7 +85,7 @@ for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target']
     N = 10 # 5
     p_valid,yp = 0, 0
     for i in range(N):
-        X_t, y_t = ag.augment_fast2(X_train.values, y_train.values, t=5, seed=random_state+i)
+        X_t, y_t = augment_fast2(X_train.values, y_train.values, t=5, seed=random_state+i)
         #X_t, y_t =X_train.values, y_train.values
         print(X_t.shape)
     
