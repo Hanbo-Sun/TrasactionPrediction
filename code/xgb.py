@@ -9,7 +9,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import QuantileTransformer
 import os
-import datetime as datetime
+from datetime import datetime
 from sklearn.externals import joblib
 os.chdir('C:/Users/sunyichi/Documents/GitHub/TrasactionPrediction')
 

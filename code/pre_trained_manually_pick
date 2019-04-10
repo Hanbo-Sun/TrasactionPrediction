@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr  9 21:58:30 2019
+
+@author: hanbosun
+"""
+
+#%%
+import pandas as pd
+import numpy as np
+import xgboost as xgb
+import lightgbm as lgb
+from datetime import datetime
+from datetime import datetime
+from sklearn.externals import joblib
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_auc_score
+from scipy.stats import rankdata
+import os
+os.chdir('/Users/hanbosun/Documents/GitHub/TrasactionPrediction/')
+
+random_state = 42
+#%%
+df_train = pd.read_csv('input/train.csv')
+df_test = pd.read_csv('input/test.csv')
+ids = np.arange(df_train.shape[0])
+np.random.seed(random_state)
+np.random.shuffle(ids)
+df_train = df_train.iloc[ids,:]
+
+#%%
+md = joblib.load('lgbmodel/lgb_model3.dat')
+
+#%%
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
+features = [col for col in df_train.columns if col not in ['target', 'ID_code']]
+X_test = df_test[features].values
+
+#%%
+for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target'])):
+    if(fold==0):
+        X_train, y_train = df_train.iloc[trn_idx][features], df_train.iloc[trn_idx]['target']
+        X_valid, y_valid = df_train.iloc[val_idx][features], df_train.iloc[val_idx]['target']
+    
+p_valid = md.predict(X_valid)
+p_test = md.predict(X_test)
+val_score = roc_auc_score(y_valid, p_valid)
+
+
+#%% lightgbm
+for i in range(10):
+    md = joblib.load('lgbmodel/lgb_model' + str(i) + '.dat')
+    fold_id = i//5
+    for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target'])):
+        if(fold==fold_id):
+            X_train, y_train = df_train.iloc[trn_idx][features], df_train.iloc[trn_idx]['target']
+            X_valid, y_valid = df_train.iloc[val_idx][features], df_train.iloc[val_idx]['target']
+    p_valid = md.predict(X_valid)
+    #p_test = md.predict(X_test)
+    val_score = roc_auc_score(y_valid, p_valid)
+    print(i)
+    print('fold=' + str(fold_id))
+    print(val_score)
+    
+    
+#%% xgb
+for i in range(50):
+    md = joblib.load('xgbmodel/xgb_model' + str(i) + '.dat')
+    fold_id = i//5
+    for fold, (trn_idx, val_idx) in enumerate(skf.split(df_train, df_train['target'])):
+        if(fold==fold_id):
+            X_train, y_train = df_train.iloc[trn_idx][features], df_train.iloc[trn_idx]['target']
+            X_valid, y_valid = df_train.iloc[val_idx][features], df_train.iloc[val_idx]['target']
+    p_valid = md.predict(xgb.DMatrix(X_valid), ntree_limit=md.best_ntree_limit)
+    #p_test = md.predict(xgb.DMatrix(X_test), ntree_limit=md.best_ntree_limit)
+    val_score = roc_auc_score(y_valid, p_valid)
+    print(i)
+    print('fold=' + str(fold_id))
+    print(val_score)
+
+
+#%% generate submission
+xgb_id = [3,5,12,19,20, 28,34,39,41,45]
+model_nm = ['xgbmodel/xgb_model' + str(x) + '.dat' for x in xgb_id]  
+predictions = np.zeros((200000, 12))
+features = [col for col in df_train.columns if col not in ['target', 'ID_code']]
+X_test = df_test[features]
+for i,md_nm in enumerate(model_nm):
+    print(md_nm)
+    md = joblib.load(md_nm)
+
+    pred_tp = md.predict(xgb.DMatrix(X_test), ntree_limit=md.best_ntree_limit)
+    predictions[:,i] = np.add(predictions[:, i], rankdata(pred_tp)/predictions.shape[0]) 
+    
+    
+
+lgb_id = [1,4]
+model_nm = ['lgbmodel/lgb_model' + str(x) + '.dat' for x in lgb_id]
+X_test = df_test[features].values
+for j,md_nm in enumerate(model_nm):
+    print(md_nm)
+    md = joblib.load(md_nm)
+    pred_tp = md.predict(X_test)
+    predictions[:,i+1+j] = np.add(predictions[:, i+1+j], rankdata(pred_tp)/predictions.shape[0])  
+
+pred_mean = np.mean(predictions, axis=1)
+    
+#%% 
+
+submission = pd.read_csv('input/sample_submission.csv')
+submission["target"] = pred_mean
+filename="submission/super_blend_lgb_xgb_{:%Y-%m-%d_%H_%M}.csv".format(datetime.now())
+submission.to_csv(filename, index=False)
